@@ -51,18 +51,42 @@ function createTree(d = 1) {
 function deleteNumberFromTree(target, tree) {
     if (tree.children) {
         tree.children = tree.children.filter(e => e.value !== target)
+
+        if (tree.children.length === 0) {
+            delete tree.children;
+            return
+        }
+
         tree.children.forEach(pt => deleteNumberFromTree(target, pt))
     }
 }
 
+function enumerateFromTree(tree) {
+    if (!tree.children || tree.children.length === 0) {
+        return [tree.value]
+    }
+
+    if (tree.value != null) {
+        return tree.children.map(n => [tree.value, enumerateFromTree(n)]);
+    }
+
+    return tree.children.map(enumerateFromTree)
+}
 /*
  -----------------------------------------------------------------------------------------------------------------------
  */
 
 const tree = createTree(4);
 
-deleteNumberFromTree(1, tree);
+// deleteNumberFromTree(1, tree);
+// deleteNumberFromTree(2, tree);
+// deleteNumberFromTree(3, tree);
+// deleteNumberFromTree(4, tree);
+// deleteNumberFromTree(5, tree);
+// deleteNumberFromTree(6, tree);
+// deleteNumberFromTree(7, tree);
+// deleteNumberFromTree(8, tree);
 
-console.dir(tree, {
+console.dir(enumerateFromTree(tree), {
     depth: Number.POSITIVE_INFINITY
 })
