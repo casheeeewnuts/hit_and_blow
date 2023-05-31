@@ -78,6 +78,7 @@ function enumerateFromTree(tree) {
 
 const tree = createTree(4);
 
+// deleteNumberFromTree(0, tree);
 // deleteNumberFromTree(1, tree);
 // deleteNumberFromTree(2, tree);
 // deleteNumberFromTree(3, tree);
@@ -86,6 +87,7 @@ const tree = createTree(4);
 // deleteNumberFromTree(6, tree);
 // deleteNumberFromTree(7, tree);
 // deleteNumberFromTree(8, tree);
+// deleteNumberFromTree(9, tree);
 
 console.dir(enumerateFromTree(tree), {
     depth: Number.POSITIVE_INFINITY
