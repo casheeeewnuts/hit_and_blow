@@ -1,94 +1,110 @@
-function createTree(d = 1) {
-    function r(arr, d) {
-        if (d === 1) {
-            return arr;
-        }
+const net = require("net");
+const {countHitAndBlow} = require('./function');
 
-        return arr.map(e => {
-            return {
-                value: e.value,
-                children: r(arr.filter(o => e.value !== o.value).map(e => ({...e})), d - 1)
-            }
-        });
+
+let digits;
+let turn = 0;
+let startTime;
+let candidates;
+let lastCalled;
+
+const connection = net.createConnection(process.argv[3] ?? 3000, process.argv[2] ?? "127.0.0.1");
+
+connection.once("connect", () => {
+    console.error("Game Start");
+});
+
+connection.on("data", (buf) => {
+    if (turn === 0) {
+        digits = Number(buf.toString());
+
+        console.error(`Digit is ${digits}`);
+        candidates = createCandidate(digits);
+
+        startTime = Date.now();
+        lastCalled = candidates[0];
+        connection.write(lastCalled);
+        turn++;
+
+        return;
     }
 
-    return {
-        children: r([
-            {
-                value: 0
-            },
-            {
-                value: 1
-            },
-            {
-                value: 2
-            },
-            {
-                value: 3
-            },
-            {
-                value: 4
-            },
-            {
-                value: 5
-            },
-            {
-                value: 6
-            },
-            {
-                value: 7
-            },
-            {
-                value: 8
-            },
-            {
-                value: 9
-            },
-        ], d)
-    };
-}
+    console.error(lastCalled, buf.toString())
 
-function deleteNumberFromTree(target, tree) {
-    if (tree.children) {
-        tree.children = tree.children.filter(e => e.value !== target)
-
-        if (tree.children.length === 0) {
-            delete tree.children;
-            return
-        }
-
-        tree.children.forEach(pt => deleteNumberFromTree(target, pt))
-    }
-}
-
-function enumerateFromTree(tree) {
-    if (!tree.children || tree.children.length === 0) {
-        return [tree.value]
+    if (buf.toString() === `${digits}E0B`) {
+        connection.destroy();
+        console.log(`secret ${lastCalled}, called ${turn} times, takes ${(Date.now() - startTime) / 1000} seconds`)
     }
 
-    if (tree.value != null) {
-        return tree.children.map(n => [tree.value, enumerateFromTree(n)]);
-    }
+    candidates = updateCandidate(candidates, lastCalled, buf.toString())
 
-    return tree.children.map(enumerateFromTree)
-}
+    lastCalled = choice(candidates);
+    connection.write(lastCalled);
+    turn++;
+});
+
 /*
  -----------------------------------------------------------------------------------------------------------------------
  */
 
-const tree = createTree(4);
+function choice(candidates) {
+    const cs = candidates.slice(0, 10 ** 2)
+    const [c, _] = cs.map(c => [c, entropy(c, cs)]).reduce(([num, e], [num2, e2]) => {
+        if (e == null) {
+            return [num2, e2]
+        } else if (e < e2) {
+            return [num2, e2]
+        } else {
+            return [num, e]
+        }
+    }, [])
 
-// deleteNumberFromTree(0, tree);
-// deleteNumberFromTree(1, tree);
-// deleteNumberFromTree(2, tree);
-// deleteNumberFromTree(3, tree);
-// deleteNumberFromTree(4, tree);
-// deleteNumberFromTree(5, tree);
-// deleteNumberFromTree(6, tree);
-// deleteNumberFromTree(7, tree);
-// deleteNumberFromTree(8, tree);
-// deleteNumberFromTree(9, tree);
+    return c
+}
 
-console.dir(enumerateFromTree(tree), {
-    depth: Number.POSITIVE_INFINITY
-})
+function entropy(num, candidates) {
+    const patternCount = candidates.reduce((c, n) => {
+        const {hit, blow} = countHitAndBlow(num, n);
+
+        if (c[`${hit}E${blow}B`] != null) {
+            c[`${hit}E${blow}B`]++;
+        } else {
+            c[`${hit}E${blow}B`] = 1;
+        }
+
+        return c;
+    }, {})
+
+    return sum([...Object.values(patternCount)].map(v => {
+        const p = v / candidates.length;
+
+        return p * Math.log2(p);
+    }));
+}
+
+function createCandidate(d) {
+    function $(arr, d) {
+        if (d === 1) {
+            return arr.map(String);
+        }
+
+        return arr.flatMap(n => {
+            const child = $(arr.filter(other => n !== other), d - 1);
+
+            return child.map(c => n.toString() + c.toString())
+        })
+    }
+
+    return $([0, 1, 2, 3, 4, 5, 6, 7, 8, 9], d);
+}
+
+function updateCandidate(candidates, called, result) {
+    return candidates.filter(c => {
+        const {hit, blow} = countHitAndBlow(c, called)
+        return `${hit}E${blow}B` === result
+    })
+}
+
+function sum(numbers) {
+    return numbers.reduce((sum, n) => sum + n, 0);
+}

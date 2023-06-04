@@ -1,4 +1,5 @@
 const net = require("net");
+const {countHitAndBlow} = require("./function");
 
 const server = net.createServer();
 const secret = process.argv[2];
@@ -15,23 +16,8 @@ server.on("connection", socket => {
 
         socket.write(`${hit}E${blow}B`);
     });
+
+    socket.write(secret.length.toString());
 });
 
 server.listen(3000, "0.0.0.0");
-
-function countHitAndBlow(secret, answer) {
-    const secretDigits = new Set([...secret])
-    let hit = 0, blow = 0;
-
-    for (let i = 0; i < answer.length; i++) {
-        if (answer[i] === secret[i]) {
-            hit++;
-        } else if (secretDigits.has(answer[i])) {
-            blow++;
-        }
-    }
-
-    return {
-        hit, blow
-    };
-}
